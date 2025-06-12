@@ -305,5 +305,4 @@ test.describe('Game Filtering', () => {
     await expect(categoryFilter).toHaveClass(/text-slate-100/);
     await expect(publisherFilter).toHaveClass(/text-slate-100/);
   });
-  });
 });

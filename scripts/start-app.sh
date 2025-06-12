@@ -45,6 +45,7 @@ cd ../client || {
     exit 1
 }
 npm install
+export ASTRO_TELEMETRY_DISABLED=1
 npm run dev -- --no-clearScreen &
 
 # Store the SvelteKit server process ID
