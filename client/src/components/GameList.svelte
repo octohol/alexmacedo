@@ -7,16 +7,69 @@
         description: string;
         publisher_name?: string;
         category_name?: string;
+        publisher?: { id: number; name: string };
+        category?: { id: number; name: string };
+    }
+
+    interface Category {
+        id: number;
+        name: string;
+        description?: string;
+        game_count: number;
+    }
+
+    interface Publisher {
+        id: number;
+        name: string;
+        description?: string;
+        game_count: number;
     }
 
     export let games: Game[] = [];
     let loading = true;
     let error: string | null = null;
+    
+    // Filter state
+    let categories: Category[] = [];
+    let publishers: Publisher[] = [];
+    let selectedCategoryId: number | null = null;
+    let selectedPublisherId: number | null = null;
+    let filtersLoading = true;
+
+    const fetchFilterOptions = async () => {
+        try {
+            const [categoriesResponse, publishersResponse] = await Promise.all([
+                fetch('/api/categories'),
+                fetch('/api/publishers')
+            ]);
+            
+            if (categoriesResponse.ok && publishersResponse.ok) {
+                categories = await categoriesResponse.json();
+                publishers = await publishersResponse.json();
+            } else {
+                console.error('Failed to fetch filter options');
+            }
+        } catch (err) {
+            console.error('Error fetching filter options:', err);
+        } finally {
+            filtersLoading = false;
+        }
+    };
 
     const fetchGames = async () => {
         loading = true;
         try {
-            const response = await fetch('/api/games');
+            const params = new URLSearchParams();
+            if (selectedCategoryId) {
+                params.append('category', selectedCategoryId.toString());
+            }
+            if (selectedPublisherId) {
+                params.append('publisher', selectedPublisherId.toString());
+            }
+            
+            const url = `/api/games${params.toString() ? '?' + params.toString() : ''}`;
+            const response = await fetch(url);
+            
             if(response.ok) {
                 games = await response.json();
             } else {
@@ -29,13 +82,88 @@
         }
     };
 
+    const handleCategoryChange = (event: Event) => {
+        const target = event.target as HTMLSelectElement;
+        selectedCategoryId = target.value ? parseInt(target.value) : null;
+        fetchGames();
+    };
+
+    const handlePublisherChange = (event: Event) => {
+        const target = event.target as HTMLSelectElement;
+        selectedPublisherId = target.value ? parseInt(target.value) : null;
+        fetchGames();
+    };
+
+    const clearFilters = () => {
+        selectedCategoryId = null;
+        selectedPublisherId = null;
+        fetchGames();
+    };
+
     onMount(() => {
+        fetchFilterOptions();
         fetchGames();
     });
 </script>
 
 <div>
     <h2 class="text-2xl font-medium mb-6 text-slate-100">Featured Games</h2>
+    
+    <!-- Filter Controls -->
+    <div class="mb-6 p-4 bg-slate-800/60 backdrop-blur-sm rounded-xl border border-slate-700/50">
+        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+            <span class="text-slate-300 font-medium">Filter by:</span>
+            
+            <div class="flex flex-col sm:flex-row gap-4 flex-1">
+                <!-- Category Filter -->
+                <div class="flex-1">
+                    <label for="category-filter" class="block text-sm font-medium text-slate-400 mb-1">Category</label>
+                    <select 
+                        id="category-filter"
+                        class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        value={selectedCategoryId || ''}
+                        on:change={handleCategoryChange}
+                        disabled={filtersLoading}
+                        data-testid="category-filter"
+                    >
+                        <option value="">All Categories</option>
+                        {#each categories as category (category.id)}
+                            <option value={category.id}>{category.name} ({category.game_count})</option>
+                        {/each}
+                    </select>
+                </div>
+                
+                <!-- Publisher Filter -->
+                <div class="flex-1">
+                    <label for="publisher-filter" class="block text-sm font-medium text-slate-400 mb-1">Publisher</label>
+                    <select 
+                        id="publisher-filter"
+                        class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        value={selectedPublisherId || ''}
+                        on:change={handlePublisherChange}
+                        disabled={filtersLoading}
+                        data-testid="publisher-filter"
+                    >
+                        <option value="">All Publishers</option>
+                        {#each publishers as publisher (publisher.id)}
+                            <option value={publisher.id}>{publisher.name} ({publisher.game_count})</option>
+                        {/each}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Clear Filters Button -->
+            {#if selectedCategoryId || selectedPublisherId}
+                <button 
+                    class="px-4 py-2 text-sm bg-slate-600 hover:bg-slate-500 text-slate-100 rounded-lg transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    on:click={clearFilters}
+                    data-testid="clear-filters"
+                >
+                    Clear Filters
+                </button>
+            {/if}
+        </div>
+    </div>
     
     {#if loading}
         <!-- loading animation -->
