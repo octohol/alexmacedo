@@ -1,3 +1,9 @@
+"""
+Unit tests for the Games API routes.
+
+This module contains comprehensive tests for the games API endpoints,
+including data retrieval and error handling scenarios.
+"""
 import unittest
 import json
 from typing import Dict, List, Any, Optional
@@ -38,7 +44,7 @@ class TestGamesRoutes(unittest.TestCase):
     GAMES_API_PATH: str = '/api/games'
 
     def setUp(self) -> None:
-        """Set up test database and seed data"""
+        """Set up test database and seed data before each test."""
         # Create a fresh Flask app for testing
         self.app = Flask(__name__)
         self.app.config['TESTING'] = True
@@ -60,14 +66,14 @@ class TestGamesRoutes(unittest.TestCase):
             self._seed_test_data()
 
     def tearDown(self) -> None:
-        """Clean up test database and ensure proper connection closure"""
+        """Clean up test database and ensure proper connection closure after each test."""
         with self.app.app_context():
             db.session.remove()
             db.drop_all()
             db.engine.dispose()
 
     def _seed_test_data(self) -> None:
-        """Helper method to seed test data"""
+        """Helper method to seed test data into the test database."""
         # Create test publishers
         publishers = [
             Publisher(**publisher_data) for publisher_data in self.TEST_DATA["publishers"]
@@ -100,11 +106,11 @@ class TestGamesRoutes(unittest.TestCase):
         db.session.commit()
 
     def _get_response_data(self, response: Response) -> Any:
-        """Helper method to parse response data"""
+        """Helper method to parse JSON response data."""
         return json.loads(response.data)
 
     def test_get_games_success(self) -> None:
-        """Test successful retrieval of multiple games"""
+        """Test successful retrieval of multiple games from the API."""
         # Act
         response = self.client.get(self.GAMES_API_PATH)
         data = self._get_response_data(response)
@@ -125,7 +131,7 @@ class TestGamesRoutes(unittest.TestCase):
             self.assertEqual(game_data['starRating'], test_game["star_rating"])
 
     def test_get_games_structure(self) -> None:
-        """Test the response structure for games"""
+        """Test the response structure for games API endpoint."""
         # Act
         response = self.client.get(self.GAMES_API_PATH)
         data = self._get_response_data(response)
@@ -140,7 +146,7 @@ class TestGamesRoutes(unittest.TestCase):
             self.assertIn(field, data[0])
 
     def test_get_game_by_id_success(self) -> None:
-        """Test successful retrieval of a single game by ID"""
+        """Test successful retrieval of a single game by ID."""
         # Get the first game's ID from the list endpoint
         response = self.client.get(self.GAMES_API_PATH)
         games = self._get_response_data(response)
@@ -159,7 +165,7 @@ class TestGamesRoutes(unittest.TestCase):
         self.assertEqual(data['publisher']['name'], first_publisher["name"])
         
     def test_get_game_by_id_not_found(self) -> None:
-        """Test retrieval of a non-existent game by ID"""
+        """Test retrieval of a non-existent game by ID returns 404."""
         # Act
         response = self.client.get(f'{self.GAMES_API_PATH}/999')
         data = self._get_response_data(response)
